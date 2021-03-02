@@ -1,0 +1,390 @@
+{
+    "Description": "This template performs all required setup to enable LakeFormation in an empty account i.e. no legacy to consider",
+    "Parameters": {
+        "AdminRoleName": {
+            "Description": "Provide a name for the data lake administrator role",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "Default": "AssumableLakeFormationAdminRoleTest",
+            "AllowedPattern": "[A-Za-z0-9]+[A-Za-z0-9_+=,.@-]*",
+            "ConstraintDescription": "Provide a valid role name starting with a letter and the rest of the characters A-Za-z0-9_+=,.@- max length 64 characters"
+        },
+        "DataAnalystRoleName": {
+            "Description": "Provide a name for the data lake administrator role",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "Default": "DataAnalystRoleNameTest",
+            "AllowedPattern": "[A-Za-z0-9]+[A-Za-z0-9_+=,.@-]*",
+            "ConstraintDescription": "Provide a valid role name starting with a letter and the rest of the characters A-Za-z0-9_+=,.@- max length 64 characters"
+        },
+        "DataAnalystPolicyName": {
+            "Description": "Provide a name for the data analyst policy",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "Default": "DataAnalystPolicyTest",
+            "AllowedPattern": "[A-Za-z0-9]+[A-Za-z0-9_+=,.@-]*",
+            "ConstraintDescription": "Provide a valid policy name starting with a letter and the rest of the characters A-Za-z0-9_+=,.@- max length 64 characters"
+        },
+        "LakeFormationWorkflowRoleName": {
+            "Description": "Provide a name for the data lake workflow role",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "Default": "LakeFormationWorkflowRoleTest",
+            "AllowedPattern": "[A-Za-z0-9]+[A-Za-z0-9_+=,.@-]*",
+            "ConstraintDescription": "Provide a valid role name starting with a letter and the rest of the characters A-Za-z0-9_+=,.@- max length 64 characters"
+        },
+        "LakeFormationWorkflowPolicyName": {
+            "Description": "Provide a name for the data lake workflow policy",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "Default": "LakeFormationWorkflowPolicyTest",
+            "AllowedPattern": "[A-Za-z0-9]+[A-Za-z0-9_+=,.@-]*",
+            "ConstraintDescription": "Provide a valid policy name starting with a letter and the rest of the characters A-Za-z0-9_+=,.@- max length 64 characters"
+        },
+        "LakeFormationSLRPolicyName": {
+            "Description": "Provide a name for the data lake SLR policy",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "Default": "LakeFormationSLRPolicyTest",
+            "AllowedPattern": "[A-Za-z0-9]+[A-Za-z0-9_+=,.@-]*",
+            "ConstraintDescription": "Provide a valid policy name starting with a letter and the rest of the characters A-Za-z0-9_+=,.@- max length 64 characters"
+        },
+        "UserPassRolePolicyName": {
+            "Description": "Provide a name for the data lake user pass policy",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "Default": "UserPassRolePolicyNameTest",
+            "AllowedPattern": "[A-Za-z0-9]+[A-Za-z0-9_+=,.@-]*",
+            "ConstraintDescription": "Provide a valid policy name starting with a letter and the rest of the characters A-Za-z0-9_+=,.@- max length 64 characters"
+        }
+    },
+    "Resources": {
+        "LakeFormationWorkflowRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "glue.amazonaws.com"
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Description": "This role defines a service linked role for LakeFormation to use",
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+                ],
+                "MaxSessionDuration": 43200,
+                "RoleName": {
+                    "Ref": "LakeFormationWorkflowRoleName"
+                }
+            }
+        },
+        "LakeFormationWorkflow": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": {
+                    "Ref": "LakeFormationWorkflowPolicyName"
+                },
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "lakeformation:GetDataAccess",
+                                "lakeformation:GrantPermissions"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "iam:PassRole"
+                            ],
+                            "Resource": [
+                                {
+                                    "Fn::GetAtt": [
+                                        "LakeFormationWorkflowRole",
+                                        "Arn"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:*"
+                            ],
+                            "Resource": [
+                                "arn:aws:s3:::*"
+                            ]
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "LakeFormationWorkflowRole"
+                    }
+                ]
+            }
+        },
+        "DataAnalystRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:aws:iam::",
+                                            {
+                                                "Ref": "AWS::AccountId"
+                                            },
+                                            ":root"
+                                        ]
+                                    ]
+                                }
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Description": "This role defines a Data Analyst and can be assumed by any role in the account",
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/AmazonAthenaFullAccess"
+                ],
+                "MaxSessionDuration": 43200,
+                "RoleName": {
+                    "Ref": "DataAnalystRoleName"
+                }
+            }
+        },
+        "DataAnalystPolicy": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": {
+                    "Ref": "DataAnalystPolicyName"
+                },
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "lakeformation:GetDataAccess",
+                                "glue:GetTable",
+                                "glue:GetTables",
+                                "glue:SearchTables",
+                                "glue:GetDatabase",
+                                "glue:GetDatabases",
+                                "glue:GetPartitions"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "DataAnalystRole"
+                    }
+                ]
+            }
+        },
+        "AdminRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:aws:iam::",
+                                            {
+                                                "Ref": "AWS::AccountId"
+                                            },
+                                            ":root"
+                                        ]
+                                    ]
+                                }
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Description": "This role defines a Data Lake Administrator and can be assumed by any role in the account",
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/PowerUserAccess",
+                    "arn:aws:iam::aws:policy/AWSLakeFormationDataAdmin",
+                    "arn:aws:iam::aws:policy/AWSGlueConsoleFullAccess",
+                    "arn:aws:iam::aws:policy/CloudWatchLogsReadOnlyAccess",
+                    "arn:aws:iam::aws:policy/AmazonAthenaFullAccess",
+                    "arn:aws:iam::aws:policy/AmazonRedshiftFullAccess",
+                    "arn:aws:iam::aws:policy/AmazonElasticMapReduceFullAccess"
+                ],
+                "MaxSessionDuration": 43200,
+                "RoleName": {
+                    "Ref": "AdminRoleName"
+                }
+            }
+        },
+        "LakeFormationSLR": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": {
+                    "Ref": "LakeFormationSLRPolicyName"
+                },
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "iam:CreateServiceLinkedRole",
+                            "Resource": "*",
+                            "Condition": {
+                                "StringEquals": {
+                                    "iam:AWSServiceName": "lakeformation.amazonaws.com"
+                                }
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "iam:PutRolePolicy"
+                            ],
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:aws:iam::",
+                                        {
+                                            "Ref": "AWS::AccountId"
+                                        },
+                                        ":role/aws-service-role/lakeformation.amazonaws.com/AWSServiceRoleForLakeFormationDataAccess"
+                                    ]
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "AdminRole"
+                    }
+                ]
+            }
+        },
+        "UserPassRole": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": {
+                    "Ref": "UserPassRolePolicyName"
+                },
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "iam:PassRole"
+                            ],
+                            "Resource": {
+                                "Fn::GetAtt": [
+                                    "LakeFormationWorkflowRole",
+                                    "Arn"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "AdminRole"
+                    }
+                ]
+            }
+        },
+        "LakeFormation": {
+            "Type": "AWS::LakeFormation::DataLakeSettings",
+            "Properties": {
+                "Admins": [
+                    {
+                        "DataLakePrincipalIdentifier": {
+                            "Fn::GetAtt": [
+                                "AdminRole",
+                                "Arn"
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "URL1": {
+            "Description": "URL to switch role to Data lake admin",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "https://signin.aws.amazon.com/switchrole?account=",
+                        {
+                            "Ref": "AWS::AccountId"
+                        },
+                        "&roleName=",
+                        {
+                            "Ref": "AdminRoleName"
+                        },
+                        "&displayName=",
+                        "Datalake_Admin"
+                    ]
+                ]
+            }
+        },
+        "URL2": {
+            "Description": "URL to switch role to Data Analyst",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "https://signin.aws.amazon.com/switchrole?account=",
+                        {
+                            "Ref": "AWS::AccountId"
+                        },
+                        "&roleName=",
+                        {
+                            "Ref": "DataAnalystRoleName"
+                        },
+                        "&displayName=",
+                        "Data_Analyst"
+                    ]
+                ]
+            }
+        }
+    },
+    "AWSTemplateFormatVersion": "2010-09-09"
+}
