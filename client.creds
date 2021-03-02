@@ -1,8 +1,0 @@
-{
-  "user_name": "workshop",
-  "password": "Teste123",
-  "host_name": "rs1-redshiftcluster-1mok7kmcnsby3.cf0lvdmitsba.us-east-2.redshift.amazonaws.com",
-  "port_num": "5439",
-  "db_name": "workshop",
-  "accountid": "139784408556"
-}
