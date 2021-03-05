@@ -1,2 +1,0 @@
-spark-submit spark-etl.py s3://aws-data-analytics-blog/emrimmersionday/tripdata.csv s3://<<notebook>>/data/test
-spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.1 spark-streaming.py
